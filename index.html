@@ -3594,8 +3594,8 @@ function initCredFields() {
 // APPROVED TEMPLATES
 // ─────────────────────────────────────────────────────────────────────
 const TEMPLATES = {
-  absent_en:{id:'1707177944980522491',label:'AbsentSMS (English)',vars:['Student Name','Date (e.g. 26-06-2026)'],build:v=>`Dear Parents,  Your ward ${v[0]} was absent for classes today ${v[1]}. Please submit a leave note or contact the class teacher.  Principal, Kengeri PU College`,unicode:false},
-  absent_kn:{id:'1707177944922973972',label:'ಗೈರುಹಾಜರಾತಿ (Kannada)',vars:['Student Name / ವಿದ್ಯಾರ್ಥಿ ಹೆಸರು'],build:v=>`ಆತ್ಮೀಯ ಪೋಷಕರೆ,  ನಿಮ್ಮ ಮಗ/ಮಗಳು ${v[0]} ಈ ದಿನ ಕಾಲೇಜಿಗೆ ಗೈರುಹಾಜರಾಗಿರುತ್ತಾರೆ. ಈ ಕೂಡಲೇ ನಿಮ್ಮ ತರಗತಿ ಉಪನ್ಯಾಸಕರನ್ನು ಸಂಪರ್ಕಿಸಿರಿ / ಭೇಟಿಯಾಗತಕ್ಕದ್ದು.  ಪ್ರಾಂಶುಪಾಲರು,  ಕೆಂಗೇರಿ ಪದವಿ ಪೂರ್ವ ಕಾಲೇಜು`,unicode:true},
+  absent_en:{id:'1707177944980522491',label:'AbsentSMS (English)',vars:['Student Name','Date (e.g. 26-06-2026)'],nameVarIndex:0,build:v=>`Dear Parents,  Your ward ${v[0]} was absent for classes today ${v[1]}. Please submit a leave note or contact the class teacher.  Principal, Kengeri PU College`,unicode:false},
+  absent_kn:{id:'1707177944922973972',label:'ಗೈರುಹಾಜರಾತಿ (Kannada)',vars:['Student Name / ವಿದ್ಯಾರ್ಥಿ ಹೆಸರು'],nameVarIndex:0,build:v=>`ಆತ್ಮೀಯ ಪೋಷಕರೆ,  ನಿಮ್ಮ ಮಗ/ಮಗಳು ${v[0]} ಈ ದಿನ ಕಾಲೇಜಿಗೆ ಗೈರುಹಾಜರಾಗಿರುತ್ತಾರೆ. ಈ ಕೂಡಲೇ ನಿಮ್ಮ ತರಗತಿ ಉಪನ್ಯಾಸಕರನ್ನು ಸಂಪರ್ಕಿಸಿರಿ / ಭೇಟಿಯಾಗತಕ್ಕದ್ದು.  ಪ್ರಾಂಶುಪಾಲರು,  ಕೆಂಗೇರಿ ಪದವಿ ಪೂರ್ವ ಕಾಲೇಜು`,unicode:true},
   fees:{id:'1707177944967753412',label:'lastDayFees',vars:['Last Date (e.g. 30-06-2026)','Installment (e.g. 1st)'],build:v=>`Dear Parents,  ${v[0]} is the last day to pay the fees for ${v[1]} installment tuition fee for the academic year 2026-27. Kindly ignore if already paid.  Principal, Kengeri PU College`,unicode:false},
   closed:{id:'1707177987719639577',label:'College Closed',vars:['Occasion / Reason'],build:v=>`Dear Student/Parent,  Please note that the college will remain closed tomorrow on account of ${v[0]}.  Regards,  Kengeri PU College`,unicode:false}
 };
@@ -4192,7 +4192,7 @@ function saveAndDownload(){
     alert('Anchor markers not found — the file may have been modified. Download may not preserve all students. Please use the original file next time.');
     const blob=new Blob([src],{type:'text/html;charset=utf-8'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download='ket_bulk_sms_sender_updated.html'; a.click(); URL.revokeObjectURL(a.href);
+    a.download='index.html'; a.click(); URL.revokeObjectURL(a.href);
     return;
   }
 
@@ -4202,7 +4202,7 @@ function saveAndDownload(){
   const blob = new Blob([newSrc],{type:'text/html;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'ket_bulk_sms_sender_updated.html';
+  a.download = 'index.html';
   a.click();
   URL.revokeObjectURL(a.href);
 
@@ -4210,7 +4210,7 @@ function saveAndDownload(){
   ALL_STUDENTS.forEach(s=>s.isNew=false);
   updateNewCount();
   renderTable();
-  flashSuccess(`✅ Downloaded with ${ALL_STUDENTS.length} students. Replace your old file with the downloaded one.`);
+  flashSuccess(`✅ Downloaded as index.html with ${ALL_STUDENTS.length} students. Upload this straight to GitHub (or your hosting) — no renaming needed.`);
 }
 
 // ── Flash success banner ──────────────────────────────────────────
@@ -4271,7 +4271,12 @@ function toggleAll(chk){
 function selectAll(){ const s=currentSection==='all'?ALL_STUDENTS:ALL_STUDENTS.filter(s=>s.section===currentSection); s.forEach(s=>selectedIds.add(ALL_STUDENTS.indexOf(s))); renderTable(); }
 function deselectAll(){ const s=currentSection==='all'?ALL_STUDENTS:ALL_STUDENTS.filter(s=>s.section===currentSection); s.forEach(s=>selectedIds.delete(ALL_STUDENTS.indexOf(s))); renderTable(); }
 function selectOnlyValid(){ const s=currentSection==='all'?ALL_STUDENTS:ALL_STUDENTS.filter(s=>s.section===currentSection); s.forEach(s=>{const i=ALL_STUDENTS.indexOf(s);if(isValidMob(s.mob))selectedIds.add(i);else selectedIds.delete(i);}); renderTable(); }
-function updateSelCount(){ document.getElementById('selCount').textContent=`${selectedIds.size} selected`; document.getElementById('sendBtn').disabled=!(selectedIds.size>0&&document.getElementById('templateSel').value)||sending; }
+function updateSelCount(){
+  document.getElementById('selCount').textContent=`${selectedIds.size} selected`;
+  document.getElementById('sendBtn').disabled=!(selectedIds.size>0&&document.getElementById('templateSel').value)||sending;
+  const key=document.getElementById('templateSel').value;
+  if(key) updatePreview(key);
+}
 
 // ── Template ──────────────────────────────────────────────────────
 function onTemplateChange(){
@@ -4283,11 +4288,27 @@ function onTemplateChange(){
   vf.style.display='block';
   vf.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Fill in the variable values:</div>`;
   varValues=new Array(tpl.vars.length).fill('');
-  tpl.vars.forEach((v,i)=>{const row=document.createElement('div');row.className='var-row';row.innerHTML=`<span class="var-label">{var ${i+1}}</span><input placeholder="${v}" oninput="setVar(${i},this.value)">`;vf.appendChild(row);});
+  tpl.vars.forEach((v,i)=>{
+    const row=document.createElement('div');row.className='var-row';
+    if(tpl.nameVarIndex===i){
+      row.innerHTML=`<span class="var-label">{var ${i+1}}</span><div style="flex:1;padding:8px 10px;background:#eef4ff;border:1px dashed #9db8e8;border-radius:6px;font-size:12px;color:var(--primary)">✓ Auto-filled with each selected student's own name — no need to type this</div>`;
+    } else {
+      row.innerHTML=`<span class="var-label">{var ${i+1}}</span><input placeholder="${v}" oninput="setVar(${i},this.value)">`;
+    }
+    vf.appendChild(row);
+  });
   updatePreview(key);updateSelCount();
 }
 function setVar(i,val){varValues[i]=val;updatePreview(document.getElementById('templateSel').value);}
-function updatePreview(key){const tpl=TEMPLATES[key];document.getElementById('previewBox').textContent=tpl.build(varValues.map((v,i)=>v||`[${tpl.vars[i]}]`));}
+function updatePreview(key){
+  const tpl=TEMPLATES[key];
+  const sample=[...selectedIds].map(i=>ALL_STUDENTS[i])[0];
+  const vals=varValues.map((v,i)=>{
+    if(tpl.nameVarIndex===i) return sample ? sample.name : '[Student Name — auto-filled per student]';
+    return v||`[${tpl.vars[i]}]`;
+  });
+  document.getElementById('previewBox').textContent=tpl.build(vals);
+}
 
 // ── Send SMS — via CORS proxy so we can read the real BhashSMS response ──
 // no-cors was used before, which meant JS could never read the reply and
@@ -4352,12 +4373,17 @@ async function startSend(){
   if(!key)return alert('Please select a template.');
   if(selectedIds.size===0)return alert('Please select at least one student.');
   const tpl=TEMPLATES[key];
-  const message=tpl.build(varValues.map((v,i)=>v||`[VAR${i+1}]`));
-  if(varValues.some(v=>!v.trim())){if(!confirm('Some template variables are empty. Send anyway?'))return;}
+  // Only require non-name variables to be filled in (name is auto-filled per student).
+  const missingVar = varValues.some((v,i)=> tpl.nameVarIndex!==i && !v.trim());
+  if(missingVar){if(!confirm('Some template variables are empty. Send anyway?'))return;}
   const toSend=[...selectedIds].map(i=>ALL_STUDENTS[i]).filter(s=>isValidMob(s.mob));
   const skipped=[...selectedIds].map(i=>ALL_STUDENTS[i]).filter(s=>!isValidMob(s.mob));
   if(toSend.length===0)return alert('No valid mobile numbers selected.');
-  if(!confirm(`Ready to send ${toSend.length} SMS?\n\nTemplate: ${tpl.label}\nMessage:\n${message}\n\n${skipped.length>0?`⚠️ ${skipped.length} student(s) with invalid numbers will be skipped.`:''}\n\nProceed?`))return;
+  // Build a preview using the first recipient's name, purely for the confirm dialog.
+  const previewVals=varValues.map((v,i)=> tpl.nameVarIndex===i ? toSend[0].name : (v||`[VAR${i+1}]`));
+  const previewMsg=tpl.build(previewVals);
+  const nameNote = tpl.nameVarIndex!=null ? `\n\n(Each parent's SMS will use their own child's name in place of "${toSend[0].name}" above.)` : '';
+  if(!confirm(`Ready to send ${toSend.length} SMS?\n\nTemplate: ${tpl.label}\nSample message (for ${toSend[0].name}):\n${previewMsg}${nameNote}\n\n${skipped.length>0?`⚠️ ${skipped.length} student(s) with invalid numbers will be skipped.`:''}\n\nProceed?`))return;
   sending=true;stopFlag=false;
   document.getElementById('sendBtn').disabled=true;
   document.getElementById('stopBtn').style.display='inline-block';
@@ -4371,6 +4397,9 @@ async function startSend(){
     if(stopFlag){log('⛔ Stopped by user.','err');break;}
     const s=toSend[i];
     const mob=cleanMob(s.mob);
+    // Build this recipient's own message, substituting their name into the nameVarIndex slot.
+    const vals=varValues.map((v,idx)=> tpl.nameVarIndex===idx ? s.name : (v||`[VAR${idx+1}]`));
+    const message=tpl.build(vals);
     document.getElementById('progressBar').style.width=Math.round((i/toSend.length)*100)+'%';
     document.getElementById('progressText').textContent=`Sending ${i+1}/${toSend.length} — ${s.name} (${mob})`;
     try{
