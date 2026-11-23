@@ -4455,7 +4455,7 @@ async function sendOneSMS(mobile, message, templateId, isUnicode) {
     phone: mobile,
     text: message,
     priority: 'ndnd',
-    stype: 'normal',
+    stype: isUnicode ? 'unicode' : 'normal',
     coding: isUnicode ? '1' : '0',
     pe_id: '1701168801502889975',
     template_id: templateId,
@@ -4468,8 +4468,9 @@ async function sendOneSMS(mobile, message, templateId, isUnicode) {
 
   let responseText = '';
   try {
-    const res = await fetch(proxyUrl, { method: 'GET' });
+    const res = await fetch(proxyUrl, { method: 'GET', signal: AbortSignal.timeout(40000) });
     responseText = (await res.text()).trim();
+    if (res.status >= 500) throw new Error(`Proxy/BhashSMS HTTP ${res.status}: ${responseText.slice(0,200)}`);
   } catch (netErr) {
     // If the proxy itself is unreachable, throw so the caller logs it as ERROR.
     throw new Error(`Network/proxy error: ${netErr.message}`);
@@ -4521,26 +4522,31 @@ async function startSend(){
   document.getElementById('logBox').innerHTML='';
   log(`Starting: ${toSend.length} recipients | Template: ${tpl.label}`);
   if(skipped.length)log(`Skipping ${skipped.length} with invalid numbers`,'err');
-  let sent=0,failed=0;
-  for(let i=0;i<toSend.length;i++){
-    if(stopFlag){log('⛔ Stopped by user.','err');break;}
-    const s=toSend[i];
-    const mob=cleanMob(s.mob);
-    // Build this recipient's own message, substituting their name into the nameVarIndex slot.
-    const vals=varValues.map((v,idx)=> tpl.nameVarIndex===idx ? s.name : (v||`[VAR${idx+1}]`));
-    const message=tpl.build(vals);
-    document.getElementById('progressBar').style.width=Math.round((i/toSend.length)*100)+'%';
-    document.getElementById('progressText').textContent=`Sending ${i+1}/${toSend.length} — ${s.name} (${mob})`;
-    try{
-      const msgId=await sendOneSMS(mob,message,tpl.id,tpl.unicode||false);
-      // sendOneSMS throws on any failure, so reaching here always means success.
-      log(`✓ Sent → ${s.name} (${mob}) | ${SECTION_LABELS[s.section]} | ID: ${msgId}`,'ok');sent++;
-    }catch(e){
-      // e.message contains the real BhashSMS error (e.g. "-1", "DND", "INVALID CREDENTIALS")
-      log(`✗ FAILED → ${s.name} (${mob}) | ${e.message}`,'err');failed++;
+  let sent=0,failed=0,done=0,next=0;
+  const CONCURRENCY=5; // messages in flight at once; lower to 2-3 if BhashSMS starts rejecting
+  async function worker(){
+    while(true){
+      if(stopFlag)return;
+      const i=next++;
+      if(i>=toSend.length)return;
+      const s=toSend[i];
+      const mob=cleanMob(s.mob);
+      const vals=varValues.map((v,idx)=> tpl.nameVarIndex===idx ? s.name : (v||`[VAR${idx+1}]`));
+      const message=tpl.build(vals);
+      try{
+        const msgId=await sendOneSMS(mob,message,tpl.id,tpl.unicode||false);
+        log(`✓ Sent → ${s.name} (${mob}) | ${SECTION_LABELS[s.section]} | ID: ${msgId}`,'ok');sent++;
+      }catch(e){
+        log(`✗ FAILED → ${s.name} (${mob}) | ${e.message}`,'err');failed++;
+      }
+      done++;
+      document.getElementById('progressBar').style.width=Math.round((done/toSend.length)*100)+'%';
+      document.getElementById('progressText').textContent=`Sent ${done}/${toSend.length} — last: ${s.name}`;
+      await new Promise(r=>setTimeout(r,150));
     }
-    if(i<toSend.length-1)await new Promise(r=>setTimeout(r,1100));
   }
+  await Promise.all(Array.from({length:Math.min(CONCURRENCY,toSend.length)},worker));
+  if(stopFlag)log('⛔ Stopped by user.','err');
   document.getElementById('progressBar').style.width='100%';
   document.getElementById('progressText').textContent=`Done! ✅ Sent: ${sent} | ❌ Failed: ${failed}`;
   log(`━━━ Completed: ${sent} sent, ${failed} failed ━━━`);
